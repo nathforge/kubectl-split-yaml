@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: List
+items:
+  - items:
+    - apiVersion: v1
+      kind: Test
+      name: test0
+    - apiVersion: v1
+      kind: Test
+      name: test1
+  - items:
+    - apiVersion: v1
+      kind: Test
+      name: test2
+    - apiVersion: v1
+      kind: Test
+      name: test3
