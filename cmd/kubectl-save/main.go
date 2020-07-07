@@ -18,12 +18,12 @@ import (
 func main() {
 	app := &cli.App{
 		Name:      "kubectl-save",
-		Usage:     "save Kubernetes YAML resources into multiple files",
+		Usage:     "split Kubernetes YAML output into one file per resource",
 		ArgsUsage: "output-path [file...]",
-		Description: "Save Kubernetes YAML resources into multiple files\n\n" +
+		Description: "Split Kubernetes YAML output into one file per resource\n\n" +
 			"EXAMPLES:\n" +
-			"   $ kubectl save MY-OUTPUT-PATH MY-RESOURCES.yaml\n" +
-			"   $ kubectl get all -o yaml | kubectl save MY-OUTPUT-PATH",
+			"   $ kubectl get all -o yaml | kubectl save MY-OUTPUT-PATH\n" +
+			"   $ kubectl save MY-OUTPUT-PATH MY-RESOURCES.yaml",
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:  "template",
