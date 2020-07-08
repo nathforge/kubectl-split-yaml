@@ -1,9 +1,9 @@
 name: goreleaser
-
 on:
-  pull_request:
   push:
-
+    tags:
+      - v*
+  pull_request:
 jobs:
   goreleaser:
     runs-on: ubuntu-latest
