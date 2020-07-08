@@ -104,10 +104,13 @@ func (o *SaveOptions) Run() error {
 		return err
 	}
 
-	if fi, err := os.Stdin.Stat(); err != nil {
-		return err
-	} else {
-		if !o.quiet && (fi.Mode()&os.ModeCharDevice) != 0 {
+	// Warn user if input appears to be a terminal
+	if !o.quiet && o.IOStreams.In == os.Stdin {
+		fi, err := os.Stdin.Stat()
+		if err != nil {
+			return err
+		}
+		if (fi.Mode() & os.ModeCharDevice) != 0 {
 			os.Stderr.Write([]byte(
 				"NOTE: kubectl-split-yaml expects input from stdin\n" +
 					"      e.g $ kubectl split-yaml <resources.yaml\n" +
@@ -116,7 +119,7 @@ func (o *SaveOptions) Run() error {
 		}
 	}
 
-	return walkresources.WalkReader(os.Stdin, func(resource map[interface{}]interface{}) error {
+	return walkresources.WalkReader(o.IOStreams.In, func(resource map[interface{}]interface{}) error {
 		return saveResources.Save(resource)
 	})
 }
