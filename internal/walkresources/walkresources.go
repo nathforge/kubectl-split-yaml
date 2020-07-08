@@ -27,10 +27,12 @@ func WalkReader(reader io.Reader, callback callback) error {
 			}
 			return err
 		}
+
 		if err := WalkObj(doc, callback); err != nil {
 			return err
 		}
 	}
+
 	return nil
 }
 
@@ -40,10 +42,11 @@ func WalkObj(obj interface{}, callback callback) error {
 	if objMap, ok := obj.(map[interface{}]interface{}); ok {
 		return walkObjMap(objMap, callback)
 	}
+
 	return errUnexpectedType(obj)
 }
 
-// walkObjMap dispatches to walkList() if it looks like a v1/List object, or
+// walkObjMap delegates to walkList() if it looks like a v1/List object, or
 // calls callback() if not
 func walkObjMap(objMap map[interface{}]interface{}, callback callback) error {
 	apiVersion, kind, ok := getResourceType(objMap)
@@ -74,11 +77,12 @@ func walkList(obj map[interface{}]interface{}, callback callback) error {
 
 		// Try to handle ketall plugin output
 		if err := walkKetallItem(item, callback); err != nil {
-			if !errors.Is(err, ErrNotAKetallItem) {
-				return err
-			}
-			// This isn't a ketall item - assume it's a normal resource
-			if err := WalkObj(item, callback); err != nil {
+			if errors.Is(err, ErrNotAKetallItem) {
+				// This isn't a ketall item. Treat as a standard resource
+				if err := WalkObj(item, callback); err != nil {
+					return err
+				}
+			} else {
 				return err
 			}
 		}
@@ -126,12 +130,13 @@ func walkKetallItem(obj map[interface{}]interface{}, callback callback) error {
 	}
 
 	for _, itemIntf := range itemIntfs {
-		if item, ok := itemIntf.(map[interface{}]interface{}); ok {
-			if err := callback(item); err != nil {
-				return err
-			}
-		} else {
+		item, ok := itemIntf.(map[interface{}]interface{})
+		if !ok {
 			return errUnexpectedType(itemIntf)
+		}
+
+		if err := callback(item); err != nil {
+			return err
 		}
 	}
 	return nil
@@ -142,10 +147,15 @@ func errUnexpectedType(value interface{}) error {
 }
 
 func getResourceType(obj map[interface{}]interface{}) (string, string, bool) {
-	if apiVersion, ok := obj["apiVersion"].(string); ok {
-		if kind, ok := obj["kind"].(string); ok {
-			return apiVersion, kind, true
-		}
+	apiVersion, ok := obj["apiVersion"].(string)
+	if !ok {
+		return "", "", false
 	}
-	return "", "", false
+
+	kind, ok := obj["kind"].(string)
+	if !ok {
+		return "", "", false
+	}
+
+	return apiVersion, kind, true
 }
