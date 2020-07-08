@@ -98,6 +98,18 @@ func (o *SaveOptions) Run() error {
 		return err
 	}
 
+	if fi, err := os.Stdin.Stat(); err != nil {
+		return err
+	} else {
+		if !o.quiet && (fi.Mode()&os.ModeCharDevice) != 0 {
+			os.Stderr.Write([]byte(
+				"NOTE: kubectl-split-yaml expects input from stdin\n" +
+					"      e.g $ kubectl split-yaml <resources.yaml\n" +
+					"          $ kubectl get all -o yaml | kubectl split-yaml\n",
+			))
+		}
+	}
+
 	decoder := yaml.NewDecoder(os.Stdin)
 	for {
 		doc := map[interface{}]interface{}{}

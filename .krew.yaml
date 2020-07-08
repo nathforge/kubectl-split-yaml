@@ -1,0 +1,30 @@
+apiVersion: krew.googlecontainertools.github.com/v1alpha2
+kind: Plugin
+metadata:
+  name: save
+spec:
+  version: {{ .TagName }}
+  homepage: https://github.com/nathforge/kubectl-save
+  shortDescription: Save Kubernetes YAML output into one file per resource.
+  description: |
+    This plugin takes output from `kubectl get -o yaml` and saves one file
+    per resource.
+  platforms:
+  - selector:
+      matchLabels:
+        os: darwin
+        arch: amd64
+    {{addURIAndSha "https://github.com/nathforge/kubectl-save/releases/download/{{ .TagName }}/kubectl-save_{{ .TagName }}_Darwin_x86_64.tar.gz" .TagName }}
+    bin: kubectl-save
+  - selector:
+      matchLabels:
+        os: linux
+        arch: amd64
+    {{addURIAndSha "https://github.com/nathforge/kubectl-save/releases/download/{{ .TagName }}/kubectl-save_{{ .TagName }}_Linux_x86_64.tar.gz" .TagName }}
+    bin: kubectl-save
+  - selector:
+      matchLabels:
+        os: windows
+        arch: amd64
+    {{addURIAndSha "https://github.com/nathforge/kubectl-save/releases/download/{{ .TagName }}/kubectl-save_{{ .TagName }}_Windows_x86_64.tar.gz" .TagName }}
+    bin: kubectl-save.exe
