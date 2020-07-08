@@ -3,6 +3,9 @@ package walkresources
 import (
 	"errors"
 	"fmt"
+	"io"
+
+	"gopkg.in/yaml.v2"
 )
 
 var ErrNotAResource = errors.New("object is not a resource (missing apiVersion or kind)")
@@ -12,23 +15,37 @@ var ErrUnexpectedType = errors.New("unexpected type")
 
 type callback = func(map[interface{}]interface{}) error
 
-// Walk takes a parsed YAML object and calls callback() for each Kubernetes
-// resource
-func Walk(obj interface{}, callback callback) error {
-	return walkObj(obj, callback)
+// WalkReader takes YAML docs from a Reader and calls callback() for each
+// Kubernetes resource
+func WalkReader(reader io.Reader, callback callback) error {
+	decoder := yaml.NewDecoder(reader)
+	for {
+		doc := map[interface{}]interface{}{}
+		if err := decoder.Decode(doc); err != nil {
+			if errors.Is(err, io.EOF) {
+				break
+			}
+			return err
+		}
+		if err := WalkObj(doc, callback); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
-// walkObj dispatches based on obj type
-func walkObj(obj interface{}, callback callback) error {
+// WalkObj takes a parsed YAML object and calls callback() for each Kubernetes
+// resource
+func WalkObj(obj interface{}, callback callback) error {
 	if objMap, ok := obj.(map[interface{}]interface{}); ok {
-		return walkObjMap(objMap, callback)
+		return WalkObjMap(objMap, callback)
 	}
 	return errUnexpectedType(obj)
 }
 
-// walkObjMap dispatches to walkList() if it looks like a v1/List object, or
+// WalkObjMap dispatches to walkList() if it looks like a v1/List object, or
 // calls callback() if not
-func walkObjMap(objMap map[interface{}]interface{}, callback callback) error {
+func WalkObjMap(objMap map[interface{}]interface{}, callback callback) error {
 	apiVersion, kind, ok := getResourceType(objMap)
 	if !ok {
 		return ErrNotAResource
@@ -61,7 +78,7 @@ func walkList(obj map[interface{}]interface{}, callback callback) error {
 				return err
 			}
 			// This isn't a ketall item - assume it's a normal resource
-			if err := walkObj(item, callback); err != nil {
+			if err := WalkObj(item, callback); err != nil {
 				return err
 			}
 		}

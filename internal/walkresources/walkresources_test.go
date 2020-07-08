@@ -3,6 +3,7 @@ package walkresources
 import (
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -46,10 +47,11 @@ func testDataFolder(path string) error {
 	}
 
 	inputFilename := filepath.Join(path, "input.yaml")
-	input := map[interface{}]interface{}{}
-	if err := decodeFile(inputFilename, input); err != nil {
-		return fmt.Errorf("%s: %w", inputFilename, err)
+	input, err := os.Open(inputFilename)
+	if err != nil {
+		return err
 	}
+	defer input.Close()
 
 	expectedCalls := []expectedCall{}
 	for i := 0; ; i++ {
@@ -70,10 +72,10 @@ func testDataFolder(path string) error {
 	return expectWalkCallbacks(input, expectedCalls)
 }
 
-func expectWalkCallbacks(root map[interface{}]interface{}, expectedCalls []expectedCall) error {
+func expectWalkCallbacks(input io.Reader, expectedCalls []expectedCall) error {
 	nextCallIndex := 0
 
-	err := Walk(root, func(actual map[interface{}]interface{}) error {
+	err := WalkReader(input, func(actual map[interface{}]interface{}) error {
 		callIndex := nextCallIndex
 
 		if callIndex >= len(expectedCalls) {

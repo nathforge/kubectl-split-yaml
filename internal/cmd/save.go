@@ -1,10 +1,8 @@
 package cmd
 
 import (
-	"errors"
 	"fmt"
 	"html/template"
-	"io"
 	"os"
 
 	"github.com/nathforge/kubectl-save/internal/saveresources"
@@ -118,22 +116,7 @@ func (o *SaveOptions) Run() error {
 		}
 	}
 
-	decoder := yaml.NewDecoder(os.Stdin)
-	for {
-		doc := map[interface{}]interface{}{}
-		if err := decoder.Decode(doc); err != nil {
-			if errors.Is(err, io.EOF) {
-				break
-			}
-			return err
-		}
-		err := walkresources.Walk(doc, func(resource map[interface{}]interface{}) error {
-			return saveResources.Save(resource)
-		})
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return walkresources.WalkReader(os.Stdin, func(resource map[interface{}]interface{}) error {
+		return saveResources.Save(resource)
+	})
 }
