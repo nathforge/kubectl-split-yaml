@@ -50,6 +50,13 @@ func NewCmdSave(streams genericclioptions.IOStreams) *cobra.Command {
 				return err
 			}
 			if err := o.Run(); err != nil {
+				if _, ok := err.(*yaml.TypeError); ok {
+					return fmt.Errorf(
+						"%w\n\nIs your input in YAML format?\n"+
+							"If using `kubectl get` you can pass the `-o yaml` option",
+						err,
+					)
+				}
 				return err
 			}
 			return nil
