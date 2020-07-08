@@ -29,13 +29,15 @@ func walkObj(obj interface{}, callback callback) error {
 // walkObjMap dispatches to walkList() if it looks like a v1/List object, or
 // calls callback() if not
 func walkObjMap(objMap map[interface{}]interface{}, callback callback) error {
-	if apiVersion, kind, ok := getResourceType(objMap); ok {
-		if apiVersion == "v1" && kind == "List" {
-			return walkList(objMap, callback)
-		}
-	} else {
+	apiVersion, kind, ok := getResourceType(objMap)
+	if !ok {
 		return ErrNotAResource
 	}
+
+	if apiVersion == "v1" && kind == "List" {
+		return walkList(objMap, callback)
+	}
+
 	return callback(objMap)
 }
 
