@@ -38,14 +38,14 @@ func WalkReader(reader io.Reader, callback callback) error {
 // resource
 func WalkObj(obj interface{}, callback callback) error {
 	if objMap, ok := obj.(map[interface{}]interface{}); ok {
-		return WalkObjMap(objMap, callback)
+		return walkObjMap(objMap, callback)
 	}
 	return errUnexpectedType(obj)
 }
 
-// WalkObjMap dispatches to walkList() if it looks like a v1/List object, or
+// walkObjMap dispatches to walkList() if it looks like a v1/List object, or
 // calls callback() if not
-func WalkObjMap(objMap map[interface{}]interface{}, callback callback) error {
+func walkObjMap(objMap map[interface{}]interface{}, callback callback) error {
 	apiVersion, kind, ok := getResourceType(objMap)
 	if !ok {
 		return ErrNotAResource
