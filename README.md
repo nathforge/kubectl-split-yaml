@@ -1,4 +1,4 @@
-# kubectl-save
+# kubectl-split-yaml
 
 A `kubectl` plugin to split Kubernetes YAML output into one file per
 resource.
@@ -6,7 +6,7 @@ resource.
 ## Example
 
 ```shell
-$ kubectl get all -o yaml | kubectl save .
+$ kubectl get all -o yaml | kubectl split-yaml .
 v1--Pod/default--nginx-86c57db685-4vnjc.yaml
 v1--Service/default--nginx.yaml
 apps_v1--Deployment/default--nginx.yaml

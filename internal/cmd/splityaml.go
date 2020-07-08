@@ -5,40 +5,40 @@ import (
 	"html/template"
 	"os"
 
-	"github.com/nathforge/kubectl-save/internal/saveresources"
-	"github.com/nathforge/kubectl-save/internal/walkresources"
+	"github.com/nathforge/kubectl-split-yaml/internal/saveresources"
+	"github.com/nathforge/kubectl-split-yaml/internal/walkresources"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
 	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
 var (
-	saveExample = `  # save deployment resources
-  kubectl get deploy -o yaml | %[1] save`
+	splitYAMLExample = `  # save deployment resources
+  kubectl get deploy -o yaml | %[1] split-yaml`
 )
 
-type SaveOptions struct {
+type SplitYAMLOptions struct {
 	genericclioptions.IOStreams
 	outputPath string
 	template   string
 	quiet      bool
 }
 
-func NewSaveOptions(streams genericclioptions.IOStreams) *SaveOptions {
-	return &SaveOptions{
+func NewSplitYAMLOptions(streams genericclioptions.IOStreams) *SplitYAMLOptions {
+	return &SplitYAMLOptions{
 		IOStreams: streams,
 		template:  "{{.apiVersion}}--{{.kind}}/{{.namespace}}--{{.name}}.yaml",
 		quiet:     false,
 	}
 }
 
-func NewCmdSave(streams genericclioptions.IOStreams) *cobra.Command {
-	o := NewSaveOptions(streams)
+func NewCmdSplitYAML(streams genericclioptions.IOStreams) *cobra.Command {
+	o := NewSplitYAMLOptions(streams)
 
 	cmd := &cobra.Command{
-		Use:          "save [output-path] [flags]",
+		Use:          "split-yaml [output-path] [flags]",
 		Short:        "Split Kubernetes YAML output into one file per resource",
-		Example:      fmt.Sprintf(saveExample, "kubectl"),
+		Example:      fmt.Sprintf(splitYAMLExample, "kubectl"),
 		SilenceUsage: true,
 		RunE: func(c *cobra.Command, args []string) error {
 			if err := o.Complete(c, args); err != nil {
@@ -68,7 +68,7 @@ func NewCmdSave(streams genericclioptions.IOStreams) *cobra.Command {
 	return cmd
 }
 
-func (o *SaveOptions) Complete(cmd *cobra.Command, args []string) error {
+func (o *SplitYAMLOptions) Complete(cmd *cobra.Command, args []string) error {
 	switch len(args) {
 	case 0:
 		o.outputPath = "."
@@ -81,11 +81,11 @@ func (o *SaveOptions) Complete(cmd *cobra.Command, args []string) error {
 }
 
 // Validate ensures that all required arguments and flag values are provided
-func (o *SaveOptions) Validate() error {
+func (o *SplitYAMLOptions) Validate() error {
 	return nil
 }
 
-func (o *SaveOptions) Run() error {
+func (o *SplitYAMLOptions) Run() error {
 	filenameTemplate, err := template.New("").Parse(o.template)
 	if err != nil {
 		return err

@@ -1,4 +1,4 @@
-module github.com/nathforge/kubectl-save
+module github.com/nathforge/kubectl-split-yaml
 
 go 1.13
 

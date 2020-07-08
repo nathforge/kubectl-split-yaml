@@ -1,11 +1,11 @@
-project_name: kubectl-save
+project_name: kubectl-split-yaml
 before:
   hooks:
     - go mod download
 builds:
 - env:
   - CGO_ENABLED=0
-  main: ./cmd/kubectl-save
+  main: ./cmd/kubectl-split-yaml
   goos:
     - linux
     - darwin
