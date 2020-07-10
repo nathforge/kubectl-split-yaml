@@ -102,7 +102,7 @@ func (s *SaveResources) getFilename(apiVersion, kind, namespace, name string) (s
 func (s *SaveResources) getFilenameForResource(resource map[interface{}]interface{}) (string, error) {
 	apiVersion, ok := resource["apiVersion"].(string)
 	if !ok {
-		return "", errors.New("apiVersion is missing or not a string on\n%s")
+		return "", errors.New("apiVersion is missing or not a string")
 	}
 
 	kind, ok := resource["kind"].(string)
