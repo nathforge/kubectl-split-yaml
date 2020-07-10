@@ -44,7 +44,7 @@ func WalkObj(obj interface{}, callback callback) error {
 		return walkObjMap(objMap, callback)
 	}
 
-	return errUnexpectedType(obj)
+	return newErrUnexpectedType(obj)
 }
 
 // walkObjMap delegates to walkList() if it looks like a v1/List object, or
@@ -73,7 +73,7 @@ func walkList(obj map[interface{}]interface{}, callback callback) error {
 	for _, itemIntf := range items {
 		item, ok := itemIntf.(map[interface{}]interface{})
 		if !ok {
-			return errUnexpectedType(item)
+			return newErrUnexpectedType(item)
 		}
 
 		// Try to handle ketall plugin output
@@ -133,7 +133,7 @@ func walkKetallItem(obj map[interface{}]interface{}, callback callback) error {
 	for _, itemIntf := range itemIntfs {
 		item, ok := itemIntf.(map[interface{}]interface{})
 		if !ok {
-			return errUnexpectedType(itemIntf)
+			return newErrUnexpectedType(itemIntf)
 		}
 
 		if err := callback(item); err != nil {
@@ -143,7 +143,7 @@ func walkKetallItem(obj map[interface{}]interface{}, callback callback) error {
 	return nil
 }
 
-func errUnexpectedType(value interface{}) error {
+func newErrUnexpectedType(value interface{}) error {
 	return fmt.Errorf("%w: %T", ErrUnexpectedType, value)
 }
 
