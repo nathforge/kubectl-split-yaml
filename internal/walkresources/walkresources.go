@@ -10,8 +10,9 @@ import (
 
 var ErrNotAResource = errors.New("object is not a resource (missing apiVersion or kind)")
 var ErrNotAListResource = errors.New("object is not a list resource")
-var ErrNotAKetallItem = errors.New("not a ketall item")
 var ErrUnexpectedType = errors.New("unexpected type")
+
+var errNotAKetallItem = errors.New("not a ketall item")
 
 type callback = func(map[interface{}]interface{}) error
 
@@ -77,7 +78,7 @@ func walkList(obj map[interface{}]interface{}, callback callback) error {
 
 		// Try to handle ketall plugin output
 		if err := walkKetallItem(item, callback); err != nil {
-			if errors.Is(err, ErrNotAKetallItem) {
+			if errors.Is(err, errNotAKetallItem) {
 				// This isn't a ketall item. Treat as a standard resource
 				if err := WalkObj(item, callback); err != nil {
 					return err
@@ -113,20 +114,20 @@ func walkKetallItem(obj map[interface{}]interface{}, callback callback) error {
 	// Notice the extra items objects with no apiVersion or kind.
 	//
 	// This function tries to callback ketall resources found within a
-	// top-level item. Returns ErrNotAKetallItem if unsuccessful, signalling
+	// top-level item. Returns errNotAKetallItem if unsuccessful, signalling
 	// the item should be processed as a standard Kubernetes resource.
 
 	if _, ok := obj["apiVersion"].(string); ok {
-		return ErrNotAKetallItem
+		return errNotAKetallItem
 	}
 
 	if _, ok := obj["kind"].(string); ok {
-		return ErrNotAKetallItem
+		return errNotAKetallItem
 	}
 
 	itemIntfs, ok := obj["items"].([]interface{})
 	if !ok {
-		return ErrNotAKetallItem
+		return errNotAKetallItem
 	}
 
 	for _, itemIntf := range itemIntfs {
