@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"html/template"
+	"io"
 	"os"
 
 	"github.com/nathforge/kubectl-split-yaml/internal/saveresources"
@@ -14,21 +15,27 @@ import (
 
 var (
 	splitYAMLExample = `  # save deployment resources
-  kubectl get deploy -o yaml | %[1] split-yaml`
+  kubectl get deploy -o yaml | %[1]s split-yaml -p deployments
+
+  # split single file into multiple files
+  %[1]s split-yaml -f bigfile.yaml -p smallerfiles`
 )
 
 type SplitYAMLOptions struct {
 	genericclioptions.IOStreams
-	outputPath string
-	template   string
-	quiet      bool
+	inputFilename string
+	outputPath    string
+	template      string
+	quiet         bool
 }
 
 func NewSplitYAMLOptions(streams genericclioptions.IOStreams) *SplitYAMLOptions {
 	return &SplitYAMLOptions{
-		IOStreams: streams,
-		template:  "{{.apiVersion}}--{{.kind}}/{{.namespace}}--{{.name}}.yaml",
-		quiet:     false,
+		IOStreams:     streams,
+		inputFilename: "-",
+		outputPath:    ".",
+		template:      "{{.apiVersion}}--{{.kind}}/{{.namespace}}--{{.name}}.yaml",
+		quiet:         false,
 	}
 }
 
@@ -36,18 +43,19 @@ func NewCmdSplitYAML(streams genericclioptions.IOStreams) *cobra.Command {
 	o := NewSplitYAMLOptions(streams)
 
 	cmd := &cobra.Command{
-		Use:          "split-yaml [output-path] [flags]",
+		Use:          "kubectl-split-yaml [flags]",
 		Short:        "Split Kubernetes YAML output into one file per resource",
 		Example:      fmt.Sprintf(splitYAMLExample, "kubectl"),
 		SilenceUsage: true,
+		Args:         cobra.NoArgs,
 		RunE: func(c *cobra.Command, args []string) error {
-			if err := o.Complete(c, args); err != nil {
-				return err
-			}
 			if err := o.Validate(); err != nil {
 				return err
 			}
 			if err := o.Run(); err != nil {
+				// Is this a YAML decoding error?
+				// Add a hint - user may have forgotten to pass `-o yaml` to
+				// `kubectl get`
 				if _, ok := err.(*yaml.TypeError); ok {
 					return fmt.Errorf(
 						"%w\n\n"+
@@ -62,22 +70,12 @@ func NewCmdSplitYAML(streams genericclioptions.IOStreams) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&o.template, "template", o.template, "Filename template")
-	cmd.Flags().BoolVar(&o.quiet, "quiet", o.quiet, "Don't display progress messages")
+	cmd.Flags().StringVarP(&o.inputFilename, "input", "f", o.inputFilename, "Input filename; use \"-\" for stdin")
+	cmd.Flags().StringVarP(&o.outputPath, "output-path", "p", o.outputPath, "Output path")
+	cmd.Flags().StringVarP(&o.template, "template", "t", o.template, "Filename template")
+	cmd.Flags().BoolVar(&o.quiet, "quiet", o.quiet, "Don't show status messages")
 
 	return cmd
-}
-
-func (o *SplitYAMLOptions) Complete(cmd *cobra.Command, args []string) error {
-	switch len(args) {
-	case 0:
-		o.outputPath = "."
-	case 1:
-		o.outputPath = args[0]
-	default:
-		return fmt.Errorf("either one or no arguments are allowed")
-	}
-	return nil
 }
 
 // Validate ensures that all required arguments and flag values are provided
@@ -86,6 +84,17 @@ func (o *SplitYAMLOptions) Validate() error {
 }
 
 func (o *SplitYAMLOptions) Run() error {
+	var inputReader io.Reader
+	if o.inputFilename == "-" {
+		inputReader = o.IOStreams.In
+	} else {
+		var err error
+		inputReader, err = os.Open(o.inputFilename)
+		if err != nil {
+			return err
+		}
+	}
+
 	filenameTemplate, err := template.New("").Parse(o.template)
 	if err != nil {
 		return err
@@ -105,21 +114,24 @@ func (o *SplitYAMLOptions) Run() error {
 	}
 
 	// Warn user if input appears to be a terminal
-	if !o.quiet && o.IOStreams.In == os.Stdin {
+	if !o.quiet && inputReader == os.Stdin {
 		fi, err := os.Stdin.Stat()
 		if err != nil {
 			return err
 		}
 		if (fi.Mode() & os.ModeCharDevice) != 0 {
 			os.Stderr.Write([]byte(
-				"NOTE: kubectl-split-yaml expects input from stdin\n" +
-					"      e.g $ kubectl split-yaml <resources.yaml\n" +
-					"          $ kubectl get all -o yaml | kubectl split-yaml\n",
+				"NOTE: kubectl-split-yaml is currently reading from stdin.\n" +
+					"      Other options include passing a filename, e.g:\n" +
+					"          $ kubectl split-yaml -i resources.yaml\n" +
+					"      or piping input, e.g:\n" +
+					"          $ kubectl get all -o yaml | kubectl split-yaml\n" +
+					"Press Ctrl+C to exit\n",
 			))
 		}
 	}
 
-	return walkresources.WalkReader(o.IOStreams.In, func(resource map[interface{}]interface{}) error {
+	return walkresources.WalkReader(inputReader, func(resource map[interface{}]interface{}) error {
 		return saveResources.Save(resource)
 	})
 }
