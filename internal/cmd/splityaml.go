@@ -38,7 +38,7 @@ func NewSplitYAMLOptions(streams IOStreams) *SplitYAMLOptions {
 	return &SplitYAMLOptions{
 		ioStreams:     streams,
 		inputFilename: "-",
-		outputPath:    ".",
+		outputPath:    "split-yaml",
 		template:      "{{.apiVersion}}--{{.kind}}/{{.namespace}}--{{.name}}.yaml",
 		quiet:         false,
 	}
