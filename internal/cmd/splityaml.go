@@ -125,7 +125,7 @@ func (o *SplitYAMLOptions) Run() error {
 			return err
 		}
 		if (fi.Mode() & os.ModeCharDevice) != 0 {
-			o.ioStreams.ErrOut.Write([]byte(
+			_, _ = o.ioStreams.ErrOut.Write([]byte(
 				"NOTE: kubectl-split-yaml is currently reading from stdin.\n" +
 					"      Other options include passing a filename, e.g:\n" +
 					"          $ kubectl split-yaml -i resources.yaml\n" +
