@@ -10,7 +10,6 @@ import (
 	"github.com/nathforge/kubectl-split-yaml/internal/walkresources"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
-	"k8s.io/cli-runtime/pkg/genericclioptions"
 )
 
 var (
@@ -21,17 +20,23 @@ var (
   %[1]s split-yaml -f bigfile.yaml -p smallerfiles`
 )
 
+type IOStreams struct {
+	In     io.Reader
+	Out    io.Writer
+	ErrOut io.Writer
+}
+
 type SplitYAMLOptions struct {
-	genericclioptions.IOStreams
+	ioStreams     IOStreams
 	inputFilename string
 	outputPath    string
 	template      string
 	quiet         bool
 }
 
-func NewSplitYAMLOptions(streams genericclioptions.IOStreams) *SplitYAMLOptions {
+func NewSplitYAMLOptions(streams IOStreams) *SplitYAMLOptions {
 	return &SplitYAMLOptions{
-		IOStreams:     streams,
+		ioStreams:     streams,
 		inputFilename: "-",
 		outputPath:    ".",
 		template:      "{{.apiVersion}}--{{.kind}}/{{.namespace}}--{{.name}}.yaml",
@@ -39,7 +44,7 @@ func NewSplitYAMLOptions(streams genericclioptions.IOStreams) *SplitYAMLOptions 
 	}
 }
 
-func NewCmdSplitYAML(streams genericclioptions.IOStreams) *cobra.Command {
+func NewCmdSplitYAML(streams IOStreams) *cobra.Command {
 	o := NewSplitYAMLOptions(streams)
 
 	cmd := &cobra.Command{
@@ -86,7 +91,7 @@ func (o *SplitYAMLOptions) Validate() error {
 func (o *SplitYAMLOptions) Run() error {
 	var inputReader io.Reader
 	if o.inputFilename == "-" {
-		inputReader = o.IOStreams.In
+		inputReader = o.ioStreams.In
 	} else {
 		var err error
 		inputReader, err = os.Open(o.inputFilename)
@@ -105,7 +110,7 @@ func (o *SplitYAMLOptions) Run() error {
 		FilenameTemplate: filenameTemplate,
 		OnStartFile: func(filename string) {
 			if !o.quiet {
-				fmt.Println(filename)
+				fmt.Fprintf(o.ioStreams.Out, "%s\n", filename)
 			}
 		},
 	})
@@ -120,7 +125,7 @@ func (o *SplitYAMLOptions) Run() error {
 			return err
 		}
 		if (fi.Mode() & os.ModeCharDevice) != 0 {
-			os.Stderr.Write([]byte(
+			o.ioStreams.ErrOut.Write([]byte(
 				"NOTE: kubectl-split-yaml is currently reading from stdin.\n" +
 					"      Other options include passing a filename, e.g:\n" +
 					"          $ kubectl split-yaml -i resources.yaml\n" +
